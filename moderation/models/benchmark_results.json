@@ -1,0 +1,42 @@
+{
+  "baseline_prove_seconds": 3.0,
+  "iters": 30,
+  "results": [
+    {
+      "added_latency_ms_median": 62.7482,
+      "added_latency_ms_p95": 74.7502,
+      "build_ms": 68.2266,
+      "d": 64,
+      "proof_bytes": 116040,
+      "prove_ms_median": 59.3852,
+      "prove_ms_p95": 71.3703,
+      "prove_speedup_vs_baseline_3s": 50.51763739113449,
+      "verify_ms_median": 3.363,
+      "verify_ms_p95": 3.7689
+    },
+    {
+      "added_latency_ms_median": 290.09540000000004,
+      "added_latency_ms_p95": 603.6425,
+      "build_ms": 112.6182,
+      "d": 256,
+      "proof_bytes": 121480,
+      "prove_ms_median": 279.89570000000003,
+      "prove_ms_p95": 596.3304,
+      "prove_speedup_vs_baseline_3s": 10.718278272942385,
+      "verify_ms_median": 9.481200000000001,
+      "verify_ms_p95": 14.4836
+    },
+    {
+      "added_latency_ms_median": 559.9578,
+      "added_latency_ms_p95": 596.124,
+      "build_ms": 497.6109,
+      "d": 1024,
+      "proof_bytes": 126984,
+      "prove_ms_median": 550.6015,
+      "prove_ms_p95": 585.4108,
+      "prove_speedup_vs_baseline_3s": 5.448586682019574,
+      "verify_ms_median": 10.4495,
+      "verify_ms_p95": 10.9751
+    }
+  ]
+}

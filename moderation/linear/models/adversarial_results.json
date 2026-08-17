@@ -1,0 +1,54 @@
+{
+  "d": 256,
+  "num_blocked_spam": 672,
+  "classes": {
+    "synonym": {
+      "budget_1": {
+        "evaded": 29,
+        "evasion_rate": 0.0432
+      },
+      "budget_2": {
+        "evaded": 48,
+        "evasion_rate": 0.0714
+      },
+      "budget_3": {
+        "evaded": 53,
+        "evasion_rate": 0.0789
+      }
+    },
+    "homoglyph": {
+      "budget_1": {
+        "evaded": 0,
+        "evasion_rate": 0.0
+      },
+      "budget_2": {
+        "evaded": 0,
+        "evasion_rate": 0.0
+      },
+      "budget_3": {
+        "evaded": 0,
+        "evasion_rate": 0.0
+      }
+    },
+    "whitespace": {
+      "budget_1": {
+        "evaded": 0,
+        "evasion_rate": 0.0
+      },
+      "budget_2": {
+        "evaded": 0,
+        "evasion_rate": 0.0
+      },
+      "budget_3": {
+        "evaded": 0,
+        "evasion_rate": 0.0
+      }
+    }
+  },
+  "examples": {
+    "synonym": {
+      "original": "XXXMobileMovieClub: To use your credit, click the WAP link in the next txt message or click here>> http://wap. xxxmobilemovieclub.com?n=QJKGIGHJJGCBL",
+      "perturbed": "XXXMobileMovieClub: To use your credit, click the WAP link in the next message message or click here>> http://wap. xxxmobilemovieclub.com?n=QJKGIGHJJGCBL"
+    }
+  }
+}

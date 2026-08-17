@@ -1,0 +1,111 @@
+{
+  "arch": "mlp-1hidden-relu",
+  "hidden_dim": 16,
+  "s1": 4096,
+  "s2": 4096,
+  "seed": 42,
+  "dims": {
+    "64": {
+      "metrics_float": {
+        "accuracy": 0.9291,
+        "spam_precision": 0.7397,
+        "spam_recall": 0.7248,
+        "spam_f1": 0.7322,
+        "confusion_matrix_[[tn,fp],[fn,tp]]": [
+          [
+            108,
+            41
+          ],
+          [
+            38,
+            928
+          ]
+        ]
+      },
+      "metrics_quantized": {
+        "accuracy": 0.9291,
+        "spam_precision": 0.7397,
+        "spam_recall": 0.7248,
+        "spam_f1": 0.7322,
+        "confusion_matrix_[[tn,fp],[fn,tp]]": [
+          [
+            108,
+            41
+          ],
+          [
+            38,
+            928
+          ]
+        ]
+      }
+    },
+    "256": {
+      "metrics_float": {
+        "accuracy": 0.9623,
+        "spam_precision": 0.8543,
+        "spam_recall": 0.8658,
+        "spam_f1": 0.86,
+        "confusion_matrix_[[tn,fp],[fn,tp]]": [
+          [
+            129,
+            20
+          ],
+          [
+            22,
+            944
+          ]
+        ]
+      },
+      "metrics_quantized": {
+        "accuracy": 0.9623,
+        "spam_precision": 0.8543,
+        "spam_recall": 0.8658,
+        "spam_f1": 0.86,
+        "confusion_matrix_[[tn,fp],[fn,tp]]": [
+          [
+            129,
+            20
+          ],
+          [
+            22,
+            944
+          ]
+        ]
+      }
+    },
+    "1024": {
+      "metrics_float": {
+        "accuracy": 0.9758,
+        "spam_precision": 0.9621,
+        "spam_recall": 0.8523,
+        "spam_f1": 0.9039,
+        "confusion_matrix_[[tn,fp],[fn,tp]]": [
+          [
+            127,
+            22
+          ],
+          [
+            5,
+            961
+          ]
+        ]
+      },
+      "metrics_quantized": {
+        "accuracy": 0.9758,
+        "spam_precision": 0.9621,
+        "spam_recall": 0.8523,
+        "spam_f1": 0.9039,
+        "confusion_matrix_[[tn,fp],[fn,tp]]": [
+          [
+            127,
+            22
+          ],
+          [
+            5,
+            961
+          ]
+        ]
+      }
+    }
+  }
+}
