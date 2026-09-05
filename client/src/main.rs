@@ -247,6 +247,7 @@ async fn send_message_ext(
 fn start_polling(
     state_arc: Arc<Mutex<ClientState>>,
     server_url: String,
+    circuit: Arc<ModerationCircuit>,
 ) {
     tokio::spawn(async move {
         let client = reqwest::Client::new();
@@ -355,10 +356,10 @@ fn start_polling(
                         let text = String::from_utf8_lossy(&plaintext);
                         println!("\n[{}] {}", msg.sender, text);
 
-                        // ---- Receiver-side binding check ----------------------
-                        // Recompute Poseidon(m, r) from the DECRYPTED plaintext and
+                        // ---- Receiver-side binding and policy check ------------------
+                        // 1. Recompute Poseidon(m, r) from the DECRYPTED plaintext and
                         // compare against the committed h. A mismatch proves the
-                        // sender encrypted different content than they proved.
+                        // sender encrypted different content than was committed in the envelope.
                         if let Some(md) = &msg.moderation {
                             let recomputed = if plaintext.len() <= MAX_MSG_BYTES {
                                 commitment(&plaintext, md.r)
@@ -368,13 +369,28 @@ fn start_polling(
                                 [md.h[0] ^ 1, md.h[1], md.h[2], md.h[3]]
                             };
                             if recomputed == md.h {
-                                println!("  ✓ [binding check] Poseidon(m, r) == h — content matches the cleared proof.");
+                                println!("  ✓ [binding check] Poseidon(m, r) == h — plaintext matches committed hash.");
+
+                                // 2. Local policy enforcement: verify whether the decrypted message
+                                // actually satisfies the public classifier policy.
+                                let f = moderation_core::features::feature_vector(&text, circuit.model.d);
+                                if circuit.model.allowed(&f) {
+                                    println!("  ✓ [policy check] Message conforms to public moderation policy.");
+                                } else {
+                                    println!("┌─ [POLICY VIOLATION DETECTED] ──────────────────────────┐");
+                                    println!("│  WARNING: Decrypted message violates moderation policy! │");
+                                    println!("│  The sender proved compliance using a SPOOFED feature   │");
+                                    println!("│  witness vector, but committed to this violating text.  │");
+                                    println!("│  Tamper-evident envelope binds this message to sender:  │");
+                                    println!("│  Sender: {:<46} │", msg.sender);
+                                    println!("└─────────────────────────────────────────────────────────┘");
+                                }
                             } else {
                                 println!("┌─ [BINDING CHECK FAILED] ───────────────────────────────┐");
                                 println!("│  Sender proved one message but encrypted another!       │");
                                 println!("│  committed h : {:016x}...                     │", md.h[0]);
                                 println!("│  recomputed  : {:016x}...                     │", recomputed[0]);
-                                println!("│  Message REJECTED (attributable sender misbehaviour).   │");
+                                println!("│  Message REJECTED (tamper-evident envelope mismatch).   │");
                                 println!("└─────────────────────────────────────────────────────────┘");
                             }
                         }
@@ -460,7 +476,7 @@ async fn main() -> Result<(), String> {
     };
 
     let state_arc = Arc::new(Mutex::new(state));
-    start_polling(Arc::clone(&state_arc), server_url.to_string());
+    start_polling(Arc::clone(&state_arc), server_url.to_string(), Arc::clone(&circuit));
 
     println!("Logged in as {}.", username);
     print_help();
