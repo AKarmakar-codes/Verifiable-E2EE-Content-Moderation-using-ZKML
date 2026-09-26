@@ -23,9 +23,9 @@ We integrate and evaluate three protocol layers in sequence to establish a secur
      $$C_\theta(\phi(m)) = \mathbb{I}(\text{Model}(\phi(m)) \ge \tau)$$
    - **ZK Prover (Plonky2)**: The sender constructs a Plonky2 circuit to prove the following relation for public model parameters $(\theta, b, \tau)$ and public message commitment $h$, with private inputs $m$ and blinding factor $r$:
      $$C_\theta(\phi(m)) = 1 \quad \land \quad \text{Poseidon}(m, r) = h$$
-   - **AEAD Associated Data (AD) Binding**: The hash commitment $h$ and blinding factor $r$ are attached as Associated Data (`AD = (h, r)`) to the AEAD envelope (ChaCha20-Poly1305). Any tampering with the commitment during transmission invalidates the AEAD authentication tag, causing decryption to fail.
+   - **AEAD Associated Data (AD) Binding**: The hash commitment $h$ is bound as Associated Data (`AD = h`) to the AEAD envelope (ChaCha20-Poly1305), while the private blinding factor $r$ is packed inside the encrypted ciphertext payload. Any tampering with the commitment during transmission invalidates the AEAD authentication tag, causing decryption to fail.
    - **ZK Middlebox (Server Verification)**: The server verifies the Plonky2 proof $\pi$ against the public inputs. If valid, the ciphertext is forwarded; otherwise, it is dropped.
-   - **Attributable Receiver Binding Check**: The receiver decrypts the message, recomputes $\text{Poseidon}(m, r)$, and matches it against the received commitment $h$. A mismatch indicates the sender proved one message but encrypted another, allowing the receiver to attribute and reject the malicious transmission.
+   - **Tamper-Evident Receiver Binding Check**: The receiver decrypts the message, unpacks the blinding factor $r$ from the ciphertext suffix, recomputes $\text{Poseidon}(m, r)$, and matches it against the received commitment $h$. A mismatch indicates the sender proved one message but encrypted another, allowing the receiver to attribute and reject the malicious transmission.
 
 ---
 
