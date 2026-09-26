@@ -468,26 +468,29 @@ pub struct PrekeyBundleAnnouncement {
 
 /// Verifiable-moderation envelope attached to a message.
 ///
-/// Carries the Poseidon commitment `h`, the blinding nonce `r`, and the
-/// serialised Plonky2 proof `pi`. `crypto-core` treats these as opaque bytes —
-/// the actual prove/verify/commit logic lives in the `moderation-core` crate.
-/// `(h, r)` are additionally bound into the AEAD associated data (see
-/// [`moderation_ad`]) so any in-transit tampering fails decryption closed.
+/// Carries the Poseidon commitment `h` and the serialised Plonky2 proof `pi`.
+/// `crypto-core` treats these as opaque bytes — the actual prove/verify/commit
+/// logic lives in the `moderation-core` crate.
+///
+/// The blinding nonce `r` is intentionally absent here: it is appended to the
+/// AEAD plaintext by the sender and recovered by the receiver after decryption.
+/// This ensures the relay server never observes `r`, closing the offline
+/// dictionary-attack surface that arises when the server knows both `h` and `r`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModerationData {
     pub h: [u64; 4],
-    pub r: u64,
     pub proof: Vec<u8>,
 }
 
-/// Encode `(h, r)` into the AEAD associated-data byte string (little-endian).
+/// Encode `h` into the AEAD associated-data byte string (little-endian).
 /// Sender and receiver must derive the AD identically for decryption to succeed.
-pub fn moderation_ad(h: &[u64; 4], r: u64) -> Vec<u8> {
-    let mut ad = Vec::with_capacity(40);
+/// Only the commitment `h` is used as AD; the nonce `r` is carried inside the
+/// ciphertext so the relay server cannot observe it.
+pub fn moderation_ad(h: &[u64; 4]) -> Vec<u8> {
+    let mut ad = Vec::with_capacity(32);
     for x in h {
         ad.extend_from_slice(&x.to_le_bytes());
     }
-    ad.extend_from_slice(&r.to_le_bytes());
     ad
 }
 

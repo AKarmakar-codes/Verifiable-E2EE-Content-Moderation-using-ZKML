@@ -164,14 +164,19 @@ async fn send_message_ext(
     let bundle = circuit
         .prove(prove_text, r)
         .map_err(|e| format!("blocked by local classifier / proof failed: {}", e))?;
-    let ad = moderation_ad(&bundle.h, r);
+    // AD is h only — r is NOT exposed to the relay server.
+    let ad = moderation_ad(&bundle.h);
 
-    let mut md = ModerationData { h: bundle.h, r, proof: bundle.proof_bytes };
+    let mut md = ModerationData { h: bundle.h, proof: bundle.proof_bytes };
     if tamper_h {
         md.h[0] ^= 1; // corrupt the commitment so the server drops it
     }
 
-    // 2. Encrypt send_text under AD = (h, r) via the Double Ratchet.
+    // Pack r (8 LE bytes) onto the end of the plaintext so Bob can verify h.
+    // The relay sees only the encrypted blob and the commitment h.
+    let mut payload = send_text.as_bytes().to_vec();
+    payload.extend_from_slice(&r.to_le_bytes());
+
     let (x3dh_init, encrypted_msg) = {
         let mut state = state_arc.lock().unwrap();
         if !state.sessions.contains_key(recipient) {
@@ -194,7 +199,7 @@ async fn send_message_ext(
 
             // Initialize Alice Double Ratchet
             let mut ratchet = DoubleRatchet::init_alice(sk, bundle_keys.signed_prekey);
-            let encrypted_msg = ratchet.ratchet_encrypt(send_text.as_bytes(), &ad)?;
+            let encrypted_msg = ratchet.ratchet_encrypt(&payload, &ad)?;
 
             let x3dh_init = X3DHInit {
                 alice_identity_key: PublicKey::from(&alice_ik_sec),
@@ -206,7 +211,7 @@ async fn send_message_ext(
             (Some(x3dh_init), encrypted_msg)
         } else {
             let ratchet = state.sessions.get_mut(recipient).unwrap();
-            let encrypted_msg = ratchet.ratchet_encrypt(send_text.as_bytes(), &ad)?;
+            let encrypted_msg = ratchet.ratchet_encrypt(&payload, &ad)?;
             (None, encrypted_msg)
         }
     };
@@ -283,8 +288,9 @@ fn start_polling(
                 let sender_clone = msg.sender.clone();
 
                 // AD used for decryption is derived from the moderation envelope.
+                // r is NOT in the envelope — it is recovered from the decrypted plaintext.
                 let ad: Vec<u8> = match &msg.moderation {
-                    Some(md) => moderation_ad(&md.h, md.r),
+                    Some(md) => moderation_ad(&md.h),
                     None => Vec::new(),
                 };
 
@@ -352,17 +358,28 @@ fn start_polling(
                 };
 
                 match decrypted_verbose {
-                    Ok((plaintext, mk)) => {
-                        let text = String::from_utf8_lossy(&plaintext);
+                    Ok((raw_payload, mk)) => {
+                        // Unpack the 8-byte r nonce appended by the sender.
+                        // Payload layout: [ message bytes (variable) | r (8 bytes LE) ]
+                        let (msg_bytes, r_extracted) = if raw_payload.len() >= 8 {
+                            let (body, r_slice) = raw_payload.split_at(raw_payload.len() - 8);
+                            let r_val = u64::from_le_bytes(r_slice.try_into().unwrap());
+                            (body.to_vec(), r_val)
+                        } else {
+                            // Malformed payload — treat entire payload as body, r = 0
+                            (raw_payload.clone(), 0u64)
+                        };
+
+                        let text = String::from_utf8_lossy(&msg_bytes);
                         println!("\n[{}] {}", msg.sender, text);
 
                         // ---- Receiver-side binding and policy check ------------------
-                        // 1. Recompute Poseidon(m, r) from the DECRYPTED plaintext and
-                        // compare against the committed h. A mismatch proves the
-                        // sender encrypted different content than was committed in the envelope.
+                        // 1. Recompute Poseidon(m, r) using the extracted r from the
+                        // decrypted plaintext. A mismatch proves the sender encrypted
+                        // different content than was committed in the envelope.
                         if let Some(md) = &msg.moderation {
-                            let recomputed = if plaintext.len() <= MAX_MSG_BYTES {
-                                commitment(&plaintext, md.r)
+                            let recomputed = if msg_bytes.len() <= MAX_MSG_BYTES {
+                                commitment(&msg_bytes, r_extracted)
                             } else {
                                 // Over-length payload can't match any honest
                                 // commitment; force a mismatch instead of panicking.
